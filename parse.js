@@ -9,8 +9,7 @@ function decode(emit) {
     version: 0x4b434150, // PACK reversed
     num: 0,
     offset: 0,
-    emit: emit,
-    sha1sum: sha1sum
+    emit: emit
   };
 
   return function (err, chunk) {
@@ -28,6 +27,7 @@ function decode(emit) {
 // State Machine Based Parser
 ////////////////////////////////////////////////////////////////////////////////
 
+// The first four bytes in a packfile are the bytes 'PACK'
 function pack(byte) {
   if ((this.version & 0xff) === byte) {
     this.version >>>= 8;
@@ -36,6 +36,8 @@ function pack(byte) {
   this.emit(new Error("Invalid packfile header"));
 }
 
+// The version is stored as an unsigned 32 integer in network byte order.
+// It must be version 2 or 3.
 function version(byte) {
   this.version = (this.version << 8) + byte;
   if (++this.offset < 4) return version;
@@ -46,6 +48,7 @@ function version(byte) {
   this.emit(new Error("Invalid version number " + this.num));
 }
 
+// The number of objects in this packfile is also stored as an unsigned 32 bit int.
 function num(byte) {
   this.num = (this.num << 8) + byte;
   if (++this.offset < 4) return num;
