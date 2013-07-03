@@ -1,0 +1,24 @@
+{
+  "name": "git-parse-pack",
+  "version": "0.0.0",
+  "description": "A push-filter codec that consumes a raw packfile binary stream and outputs object streams.",
+  "main": "parse.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/creationix/git-parse-pack.git"
+  },
+  "keywords": [
+    "push-filter",
+    "git",
+    "pack",
+    "js-git"
+  ],
+  "author": "Tim Caswell <tim@creationix.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/creationix/git-parse-pack/issues"
+  }
+}
