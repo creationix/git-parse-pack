@@ -1,6 +1,6 @@
 var sha1 = require('./sha1.js');
 var inflate = require('./inflate.js');
-var bops = require('bops');
+var subarray = require('bops/subarray.js');
 
 module.exports = decode;
 
@@ -127,7 +127,7 @@ function decode(emit) {
     inf.recycle();
     if (buf.length) emit(null, buf);
     if (--num) return $header;
-    sha1sum(bops.subarray(chunk, 0, i + 1));
+    sha1sum(subarray(chunk, 0, i + 1));
     return $checksum;   
   }
   
