@@ -142,5 +142,4 @@ function decode(emit) {
     if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
   }
 
-
 }
