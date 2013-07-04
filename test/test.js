@@ -1,8 +1,8 @@
-var filter = require('../.');
+var parse = require('../.');
 
-var emit = filter(function (err, item) {
+var emit = parse(function (err, item) {
   if (err) throw err;
-  console.log("ITEM", item);
+  console.log(item);
 });
 
 var sample = require('fs').readFileSync(__dirname + "/sample.pack");
