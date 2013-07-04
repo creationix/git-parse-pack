@@ -8,7 +8,7 @@ function decode(emit) {
   var state = $pack;
   var sha1sum = sha1();
   var inf = inflate();
-  
+
   var offset = 0;
   var position = 0;
   var version = 0x4b434150; // PACK reversed
@@ -17,10 +17,10 @@ function decode(emit) {
   var length = 0;
   var ref = null;
   var checksum = "";
-  
+
   return function (err, chunk) {
     if (chunk === undefined) return emit(err);
-    
+
     for (var i = 0, l = chunk.length; state && i < l; i++) {
       // console.log([state, i, chunk[i].toString(16)]);
       state = state(chunk[i], i, chunk);
@@ -40,7 +40,7 @@ function decode(emit) {
     }
     emit(new Error("Invalid packfile header"));
   }
-  
+
   // The version is stored as an unsigned 32 integer in network byte order.
   // It must be version 2 or 3.
   function $version(byte) {
@@ -52,7 +52,7 @@ function decode(emit) {
     }
     emit(new Error("Invalid version number " + num));
   }
-  
+
   // The number of objects in this packfile is also stored as an unsigned 32 bit int.
   function $num(byte) {
     num = (num << 8) | byte;
@@ -61,7 +61,7 @@ function decode(emit) {
     emit(null, {version: version, num: num});
     return $header;
   }
-  
+
   // n-byte type and length (3-bit type, (n-1)*7+4-bit length)
   // CTTTSSSS
   // C is continue bit, TTT is type, S+ is length
@@ -74,7 +74,7 @@ function decode(emit) {
     }
     return afterHeader();
   }
-  
+
   // Second state in the same header parsing.
   // CSSSSSSS*
   function $header2(byte) {
@@ -96,22 +96,25 @@ function decode(emit) {
       ref = "";
       return $refDelta;
     }
-    emitObject();    
+    emitObject();
     return $body;
   }
 
   function $ofsDelta(byte) {
-    return emit(new Error("TODO: Implement $ofsDelta"));  
+    ref = ((ref + 1) << 7) | (byte & 0x7f);
+    if (byte & 0x80) return $ofsDelta;
+    emitObject();
+    return $body;
   }
-  
+
   function $refDelta(byte) {
     if (byte < 0x10) ref += "0" + byte.toString(16);
     else ref += byte.toString(16);
     if (++offset < 20) return $refDelta;
-    emitObject();    
+    emitObject();
     return $body;
   }
-  
+
   function emitObject() {
     var item = {offset: position, type: type, length: length, ref: ref};
     offset = 0;
@@ -120,7 +123,7 @@ function decode(emit) {
     ref = null;
     emit(null, item);
   }
-  
+
   function $body(byte, i, chunk) {
     if (inf.write(byte)) return $body;
     var buf = inf.flush();
@@ -128,9 +131,9 @@ function decode(emit) {
     if (buf.length) emit(null, buf);
     if (--num) return $header;
     sha1sum(subarray(chunk, 0, i + 1));
-    return $checksum;   
+    return $checksum;
   }
-  
+
   function $checksum(byte) {
     if (byte < 0x10) checksum += "0" + byte.toString(16);
     else checksum += byte.toString(16);
@@ -138,6 +141,6 @@ function decode(emit) {
     var actual = sha1sum();
     if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
   }
-  
+
 
 }
