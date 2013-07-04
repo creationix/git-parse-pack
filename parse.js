@@ -111,11 +111,16 @@ function decode(emit) {
 
   // 20 byte raw sha1 hash for ref
   function $refDelta(byte) {
-    if (byte < 0x10) ref += "0" + byte.toString(16);
-    else ref += byte.toString(16);
+    ref += toHex(byte);
     if (++offset < 20) return $refDelta;
     emitObject();
     return $body;
+  }
+
+  // Common helper for generating 2-character hex numbers
+  function toHex(num) {
+    if (num < 0x10) return "0" + num.toString(16);
+    return num.toString(16);
   }
 
   // Common helper for emitting all three object shapes
@@ -143,8 +148,7 @@ function decode(emit) {
 
   // 20 byte checksum
   function $checksum(byte) {
-    if (byte < 0x10) checksum += "0" + byte.toString(16);
-    else checksum += byte.toString(16);
+    checksum += toHex(byte);
     if (++offset < 20) return $checksum;
     var actual = sha1sum();
     if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
