@@ -86,6 +86,7 @@ function decode(emit) {
     return afterHeader();
   }
 
+  // Common helper for finishing tiny and normal headers.
   function afterHeader() {
     offset = 0;
     if (type === 6) {
@@ -100,6 +101,7 @@ function decode(emit) {
     return $body;
   }
 
+  // Big-endian modified base 128 number encoded ref offset
   function $ofsDelta(byte) {
     ref = ((ref + 1) << 7) | (byte & 0x7f);
     if (byte & 0x80) return $ofsDelta;
@@ -107,6 +109,7 @@ function decode(emit) {
     return $body;
   }
 
+  // 20 byte raw sha1 hash for ref
   function $refDelta(byte) {
     if (byte < 0x10) ref += "0" + byte.toString(16);
     else ref += byte.toString(16);
@@ -115,6 +118,7 @@ function decode(emit) {
     return $body;
   }
 
+  // Common helper for emitting all three object shapes
   function emitObject() {
     var item = {offset: position, type: type, length: length, ref: ref};
     offset = 0;
@@ -124,16 +128,20 @@ function decode(emit) {
     emit(null, item);
   }
 
+  // Feed the deflated code to the inflate engine
   function $body(byte, i, chunk) {
     if (inf.write(byte)) return $body;
     var buf = inf.flush();
     inf.recycle();
     if (buf.length) emit(null, buf);
+
+    // If this was all the objects, start calculating the sha1sum
     if (--num) return $header;
     sha1sum(subarray(chunk, 0, i + 1));
     return $checksum;
   }
 
+  // 20 byte checksum
   function $checksum(byte) {
     if (byte < 0x10) checksum += "0" + byte.toString(16);
     else checksum += byte.toString(16);
