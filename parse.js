@@ -2,9 +2,9 @@ var sha1 = require('./sha1.js');
 var inflate = require('./inflate.js');
 var subarray = require('bops/subarray.js');
 
-module.exports = decode;
+module.exports = parse;
 
-function decode(emit) {
+function parse(emit) {
   var state = $pack;
   var sha1sum = sha1();
   var inf = inflate();
@@ -19,14 +19,19 @@ function decode(emit) {
   var checksum = "";
 
   return function (err, chunk) {
-    if (chunk === undefined) return emit(err);
+    if (chunk === undefined) {
+      if (err) return emit(err);
+      if (num || checksum.length < 40) return emit(new Error("Unexpected end of input stream"));
+      return emit();
+    }
 
-    for (var i = 0, l = chunk.length; state && i < l; i++) {
+    for (var i = 0, l = chunk.length; i < l; i++) {
       // console.log([state, i, chunk[i].toString(16)]);
+      if (!state) return emit(new Error("Unexpected extra bytes: " + subarray(chunk, i)));
       state = state(chunk[i], i, chunk);
       position++;
     }
-    if (!state) return emit();
+    if (!state) return;
     if (state !== $checksum) sha1sum(chunk);
     var buff = inf.flush();
     if (buff.length) emit(null, buff);

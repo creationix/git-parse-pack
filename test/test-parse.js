@@ -7,3 +7,4 @@ var emit = parse(function (err, item) {
 
 var sample = require('fs').readFileSync(__dirname + "/sample.pack");
 emit(null, sample);
+emit();
