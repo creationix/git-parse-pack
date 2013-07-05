@@ -73,6 +73,8 @@ module.exports = function (stream, find) {
     check();
   }
 
+  // Item here may or may not be the same object as was passed into find
+  // since it may have been put in offline storage temporarily.
   function onFind(err, item, target) {
     if (err) {
       dataQueue.push([err]);
