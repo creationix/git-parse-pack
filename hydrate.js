@@ -16,7 +16,7 @@ module.exports = function (stream, find) {
   stream = subStream(stream, function (item) {
     return !bops.is(item);
   }, "body");
-  
+
   var reading = false;
   var dataQueue = [];
   var readQueue = [];
@@ -46,7 +46,7 @@ module.exports = function (stream, find) {
 
   function onRead(err, item) {
     reading = false;
-    
+
     // Check for leftover deltas when forwarding end of stream information.
     if (item === undefined) {
       if (!err && pending) {
@@ -72,7 +72,7 @@ module.exports = function (stream, find) {
     }
     check();
   }
-  
+
   function onFind(err, item, target) {
     if (err) {
       dataQueue.push([err]);
@@ -85,16 +85,16 @@ module.exports = function (stream, find) {
     }
     check();
   }
-  
+
   // Tap an object's substream calculating the sha1sum along the way
-  // When done, store hash on item and callback item.
+  // When done, store hash on item and save the offset -> hash mapping.
   function tap(item) {
     var sha1sum = sha1();
     var stream = item.body;
 
     item.body = { read: tappedRead, abort: stream.abort };
     item.hash = null;
-    
+
     function tappedRead(callback) {
       stream.read(function (err, chunk) {
         if (err) return callback(err);
