@@ -1,6 +1,12 @@
 var sha1 = require('sha1-digest');
 var subStream = require('sub-stream');
 var bops = require('bops');
+var types = {
+  "1": "commit",
+  "2": "tree",
+  "3": "blob",
+  "4": "tag"
+};
 
 // A pull-filter that accepts a flat stream of objects and bodies
 // Also accepts an implementation of find(item, callback(err, item, target) {} )
@@ -67,6 +73,7 @@ module.exports = function (stream, find) {
 
     // Otherwise, forward all other traffic through.
     else {
+      item.type = types[item.type];
       tap(item);
       dataQueue.push([null, item]);
     }
@@ -91,8 +98,10 @@ module.exports = function (stream, find) {
   // Tap an object's substream calculating the sha1sum along the way
   // When done, store hash on item and save the offset -> hash mapping.
   function tap(item) {
-    var sha1sum = sha1();
     var stream = item.body;
+
+    var sha1sum = sha1();
+    sha1sum.update(item.type + " " + item.length + "\0");
 
     item.body = { read: tappedRead, abort: stream.abort };
     item.hash = null;

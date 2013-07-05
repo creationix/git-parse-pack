@@ -15,10 +15,21 @@ stream = parse(stream, false);
 // Stream is now nested streams with fully hydrated bodies.
 stream = hydrate(stream, find);
 
-consume(stream, function (item) {
-  consume(item.body)(function (err) {
+// objects and bodies are cached in ram for easy retrieval
+var objects = {};
+
+// Pending finds
+var pending = {};
+
+consume(stream, function (object) {
+  var chunks = [];
+  consume(object.body, function (chunk) {
+    chunks.push(chunk);
+  })(function (err) {
     if (err) throw err;
-    console.log(item);
+    var hash = object.hash;
+    objects[hash] = [object, chunks];
+    console.log({hash:object.hash,type:object.type});
   });
 })(function (err) {
   if (err) throw err;
@@ -31,6 +42,26 @@ consume(stream, function (item) {
 // });
 
 function find(item, callback) {
-  throw new Error("TODO: Implement sample find");
+  var hash = item.ref;
+  console.log("Looking for", hash);
+  var cached = objects[hash];
+  if (cached) {
+    var target = cached[0];
+    target.body = arrayToStream(cached[1]);
+    return callback(null, item, target);
+  }
+  throw new Error("TODO: Implement lazy find");
 }
 
+function arrayToStream(array) {
+  return { read: read, abort: abort };
+
+  function read(callback) {
+    callback(null, array.shift());
+  }
+
+  function abort(callback) {
+    array.length = 0;
+    callback();
+  }
+}
