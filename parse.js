@@ -1,5 +1,5 @@
-var sha1 = require('./todo/sha1.js');
-var inflate = require('./todo/inflate.js');
+var sha1 = require('sha1-digest');
+var inflate = require('./todo/inflate');
 var subarray = require('bops/subarray.js');
 
 module.exports = function (emit) {
@@ -31,7 +31,7 @@ module.exports = function (emit) {
       position++;
     }
     if (!state) return;
-    if (state !== $checksum) sha1sum(chunk);
+    if (state !== $checksum) sha1sum.update(chunk);
     var buff = inf.flush();
     if (buff.length) emit(null, buff);
   };
@@ -145,7 +145,7 @@ module.exports = function (emit) {
 
     // If this was all the objects, start calculating the sha1sum
     if (--num) return $header;
-    sha1sum(subarray(chunk, 0, i + 1));
+    sha1sum.update(subarray(chunk, 0, i + 1));
     return $checksum;
   }
 
@@ -153,7 +153,7 @@ module.exports = function (emit) {
   function $checksum(byte) {
     checksum += toHex(byte);
     if (++offset < 20) return $checksum;
-    var actual = sha1sum();
+    var actual = sha1sum.digest();
     if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
   }
 
