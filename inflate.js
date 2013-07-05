@@ -1,4 +1,4 @@
-var inflate = require('inflate/min.js');
+var inflate = require('./min.js');
 var bops = require('bops');
 
 // Wrapper for proposed new API to inflate:
@@ -40,7 +40,7 @@ module.exports = function () {
       more = false;
       return;
     }
-    chunks.push(item);
+  chunks.push(item);
   }
 
   function onUnused(chunks) {
