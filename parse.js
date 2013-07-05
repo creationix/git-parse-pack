@@ -2,9 +2,8 @@ var sha1 = require('./sha1.js');
 var inflate = require('./inflate.js');
 var subarray = require('bops/subarray.js');
 
-module.exports = parse;
+module.exports = function (emit) {
 
-function parse(emit) {
   var state = $pack;
   var sha1sum = sha1();
   var inf = inflate();
@@ -124,8 +123,7 @@ function parse(emit) {
 
   // Common helper for generating 2-character hex numbers
   function toHex(num) {
-    if (num < 0x10) return "0" + num.toString(16);
-    return num.toString(16);
+    return num < 0x10 ? "0" + num.toString(16) : num.toString(16);
   }
 
   // Common helper for emitting all three object shapes
@@ -159,4 +157,4 @@ function parse(emit) {
     if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
   }
 
-}
+};
