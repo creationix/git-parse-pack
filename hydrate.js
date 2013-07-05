@@ -96,14 +96,14 @@ module.exports = function (stream, find) {
     item.hash = null;
     
     function tappedRead(callback) {
-      stream.read(function (err, item) {
+      stream.read(function (err, chunk) {
         if (err) return callback(err);
-        if (item === undefined) {
+        if (chunk === undefined) {
           hashes[item.offset] = item.hash = sha1sum.digest();
           return callback();
         }
-        sha1sum.update(item);
-        callback(null, item);
+        sha1sum.update(chunk);
+        callback(null, chunk);
       });
     }
   }

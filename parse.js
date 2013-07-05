@@ -2,7 +2,7 @@ var sha1 = require('sha1-digest');
 var inflate = require('./todo/inflate');
 var subarray = require('bops/subarray.js');
 
-module.exports = function (emit) {
+module.exports = function (emit, emitInfo) {
 
   var state = $pack;
   var sha1sum = sha1();
@@ -62,7 +62,9 @@ module.exports = function (emit) {
     num = (num << 8) | byte;
     if (++offset < 4) return $num;
     offset = 0;
-    emit(null, {version: version, num: num});
+    if (emitInfo) {
+      emit(null, {version: version, num: num});
+    }
     return $header;
   }
 
