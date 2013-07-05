@@ -1,4 +1,4 @@
-var parse = require('../.');
+var parse = require('../parse.js');
 var bops = require('bops');
 
 var i = 0;
@@ -20,7 +20,7 @@ var emit = parse(function (err, item) {
   }
 });
 
-var sample = require('fs').readFileSync(__dirname + "/sample.pack");
+var sample = require('fs').readFileSync(process.argv[2] || __dirname + "/sample.pack");
 emit(null, sample);
 emit();
 

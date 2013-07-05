@@ -1,5 +1,5 @@
-var sha1 = require('./sha1.js');
-var inflate = require('./inflate.js');
+var sha1 = require('./todo/sha1.js');
+var inflate = require('./todo/inflate.js');
 var subarray = require('bops/subarray.js');
 
 module.exports = function (emit) {
