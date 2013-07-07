@@ -18,17 +18,14 @@ stream = hydrate(stream, find);
 // objects and bodies are cached in ram for easy retrieval
 var objects = {};
 
-// Pending finds
+// Pending finds.  Key is hash of target, value is array of patches with callbacks.
 var pending = {};
 
 consume(stream, function (object) {
-  var chunks = [];
-  consume(object.body, function (chunk) {
-    chunks.push(chunk);
-  })(function (err) {
+  store(object, function (err, copy) {
     if (err) throw err;
-    var hash = object.hash;
-    objects[hash] = [object, chunks];
+    objects[copy.hash] = copy;
+    flush(copy);
     console.log({hash:object.hash,type:object.type});
   });
 })(function (err) {
@@ -36,32 +33,71 @@ consume(stream, function (object) {
   console.log("END");
 });
 
-// consume(hydrate(parse(stream), find), console.log)(function (err) {
-//   if (err) throw err;
-//   console.log("END");
-// });
-
 function find(item, callback) {
   var hash = item.ref;
   console.log("Looking for", hash);
+
+  // If the target is here, send it out.
   var cached = objects[hash];
   if (cached) {
-    var target = cached[0];
-    target.body = arrayToStream(cached[1]);
-    return callback(null, item, target);
+    return callback(null, item, load(cached));
   }
-  throw new Error("TODO: Implement lazy find");
+
+  // Store the callback and delta object for later
+  store(item, function (err, copy) {
+    if (err) return callback(err);
+    var action = { callback: callback, copy: copy };
+    if (!pending[hash]) pending[hash] = [action];
+    else pending[hash].push(action);
+  });
 }
 
-function arrayToStream(array) {
-  return { read: read, abort: abort };
+// Flush any pending finds
+function flush(cached) {
+  var actions = pending[cached.hash];
+  if (!actions) return;
+  delete pending[cached.hash];
+  actions.forEach(function (action) {
+    action.callback(null, load(action.copy), load(cached));
+  });
+}
 
-  function read(callback) {
-    callback(null, array.shift());
+// Store an object in memory with it's body buffered as an array.
+function store(object, callback) {
+  var copy = {};
+  for (var key in object) {
+    if (key === "body") continue;
+    copy[key] = object[key];
+  }
+  var body = [];
+  consume(object.body, function (item) {
+    body.push(item);
+  })(function (err) {
+    if (err) return callback(err);
+    copy.body = body;
+    copy.hash = object.hash;
+    callback(null, copy);
+  });
+}
+
+// Convert a saved object to a live streamable object.
+function load(copy) {
+  var object = {};
+  for (var key in copy) {
+    if (key === "body") continue;
+    object[key] = copy[key];
   }
 
-  function abort(callback) {
-    array.length = 0;
-    callback();
-  }
+  var body = copy.body;
+  object.body = {
+    read: function read(callback) {
+      callback(null, body.shift());
+    },
+    abort: function abort(callback) {
+      body.length = 0;
+      callback();
+    }
+  };
+
+  return object;
 }

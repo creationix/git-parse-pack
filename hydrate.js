@@ -90,19 +90,22 @@ module.exports = function (stream, find) {
     }
     else {
       pending--;
-      console.log({patch:patch,base:base});
+      // console.log({patch:patch,base:base});
       var commands = parseDelta(patch.body);
-      console.log({commands:commands});
+      // console.log({commands:commands});
       commands.read(onPatch);
-      function onPatch(err, item) {
-        if (err) throw err;
-        if (item === undefined) return;
-        console.log("onPatch", item);
-        commands.read(onPatch);
-      }
       // TODO: tap this object's output as well when outputting.
     }
     check();
+    function onPatch(err, item) {
+      if (err) throw err;
+      if (item === undefined) {
+        console.error("TODO: apply delta and emit new stream");
+        return;
+      }
+      console.log("onPatch", item);
+      commands.read(onPatch);
+    }
   }
 
   // Tap an object's substream calculating the sha1sum along the way
