@@ -1,5 +1,7 @@
 var sha1 = require('sha1-digest');
 var subStream = require('sub-stream');
+var pushToPull = require('push-to-pull');
+var parseDelta = pushToPull(require('./parse-delta.js'));
 var bops = require('bops');
 var types = {
   "1": "commit",
@@ -82,14 +84,21 @@ module.exports = function (stream, find) {
 
   // Item here may or may not be the same object as was passed into find
   // since it may have been put in offline storage temporarily.
-  function onFind(err, item, target) {
+  function onFind(err, patch, base) {
     if (err) {
       dataQueue.push([err]);
     }
     else {
       pending--;
-      console.log({item:item,target:target});
-      throw new Error("TODO: merge")
+      console.log({patch:patch,base:base});
+      var commands = parseDelta(patch.body);
+      console.log({commands:commands});
+      commands.read(onPatch);
+      function onPatch(err, item) {
+        if (err) throw err;
+        console.log("onPatch", item);
+        commands.read(onPatch);
+      }
       // TODO: tap this object's output as well when outputting.
     }
     check();

@@ -17,23 +17,22 @@ module.exports = function (emit, emitInfo) {
   var ref = null;
   var checksum = "";
 
-  return function (err, chunk) {
+  return function (chunk) {
     if (chunk === undefined) {
-      if (err) return emit(err);
-      if (num || checksum.length < 40) return emit(new Error("Unexpected end of input stream"));
+      if (num || checksum.length < 40) throw new Error("Unexpected end of input stream");
       return emit();
     }
 
     for (var i = 0, l = chunk.length; i < l; i++) {
       // console.log([state, i, chunk[i].toString(16)]);
-      if (!state) return emit(new Error("Unexpected extra bytes: " + subarray(chunk, i)));
+      if (!state) throw new Error("Unexpected extra bytes: " + subarray(chunk, i));
       state = state(chunk[i], i, chunk);
       position++;
     }
     if (!state) return;
     if (state !== $checksum) sha1sum.update(chunk);
     var buff = inf.flush();
-    if (buff.length) emit(null, buff);
+    if (buff.length) emit(buff);
   };
 
   // The first four bytes in a packfile are the bytes 'PACK'
@@ -42,7 +41,7 @@ module.exports = function (emit, emitInfo) {
       version >>>= 8;
       return version ? $pack : $version;
     }
-    emit(new Error("Invalid packfile header"));
+    throw new Error("Invalid packfile header");
   }
 
   // The version is stored as an unsigned 32 integer in network byte order.
@@ -54,7 +53,7 @@ module.exports = function (emit, emitInfo) {
       offset = 0;
       return $num;
     }
-    emit(new Error("Invalid version number " + num));
+    throw new Error("Invalid version number " + num);
   }
 
   // The number of objects in this packfile is also stored as an unsigned 32 bit int.
@@ -63,7 +62,7 @@ module.exports = function (emit, emitInfo) {
     if (++offset < 4) return $num;
     offset = 0;
     if (emitInfo) {
-      emit(null, {version: version, num: num});
+      emit({version: version, num: num});
     }
     return $header;
   }
@@ -135,7 +134,7 @@ module.exports = function (emit, emitInfo) {
     type = 0;
     length = 0;
     ref = null;
-    emit(null, item);
+    emit(item);
   }
 
   // Feed the deflated code to the inflate engine
@@ -143,7 +142,7 @@ module.exports = function (emit, emitInfo) {
     if (inf.write(byte)) return $body;
     var buf = inf.flush();
     inf.recycle();
-    if (buf.length) emit(null, buf);
+    if (buf.length) emit(buf);
 
     // If this was all the objects, start calculating the sha1sum
     if (--num) return $header;
@@ -156,7 +155,7 @@ module.exports = function (emit, emitInfo) {
     checksum += toHex(byte);
     if (++offset < 20) return $checksum;
     var actual = sha1sum.digest();
-    if (checksum !== actual) return emit(new Error("Checksum mismatch: " + actual + " != " + checksum));
+    if (checksum !== actual) throw new Error("Checksum mismatch: " + actual + " != " + checksum);
   }
 
 };

@@ -6,8 +6,7 @@ var version;
 var num;
 var count = 0;
 var done;
-var emit = parse(function (err, item) {
-  if (err) throw err;
+var emit = parse(function (item) {
   if (i++ === 0) {
     version = item.version;
     num = item.num;
@@ -21,7 +20,7 @@ var emit = parse(function (err, item) {
 }, true);
 
 var sample = require('fs').readFileSync(process.argv[2] || __dirname + "/sample.pack");
-emit(null, sample);
+emit(sample);
 emit();
 
 console.log({
