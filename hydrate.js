@@ -96,6 +96,7 @@ module.exports = function (stream, find) {
       commands.read(onPatch);
       function onPatch(err, item) {
         if (err) throw err;
+        if (item === undefined) return;
         console.log("onPatch", item);
         commands.read(onPatch);
       }
