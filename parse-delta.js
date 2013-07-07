@@ -1,9 +1,12 @@
+var bops = require('bops');
+
 module.exports = function (emit) {
   var state = $baseLen;
   var baseLen = 0;
   var targetLen = 0;
   var x = 0;
   var cmd = 0;
+  var chunk = null;
   var copyOffset = 0;
   var copySize = 0;
 
@@ -12,7 +15,7 @@ module.exports = function (emit) {
     if (chunk === undefined) return emit();
 
     for (var i = 0, l = chunk.length; i < l; i++) {
-      console.log(state.name, chunk[i].toString(16));
+      // console.log(state.name, chunk[i].toString(16));
       state = state(chunk[i]);
     }
   };
@@ -37,7 +40,10 @@ module.exports = function (emit) {
   function $command(byte) {
     cmd = byte;
     if (byte & 0x80) return $copyOffset;
-    if (byte) return $insert;
+    if (byte) {
+      chunk = bops.create(byte);
+      return $insert;
+    }
     throw new Error("Unexpected delta opcode 0");
   }
 
@@ -62,19 +68,26 @@ module.exports = function (emit) {
         x++;
         return $copySize;
       }
-      x++
+      x++;
     }
     if (copySize === 0) copySize = 0x10000;
     var copy = { offset: copyOffset, size: copySize };
     x = 0;
     copyOffset = 0;
     copySize = 0;
-    emit({ copy: copy });
+    emit(copy);
     return $command(byte);
   }
 
   function $insert(byte) {
-    throw new Error("TODO: Implement $insert");
+    chunk[x++] = byte;
+    if (x < cmd) return $insert;
+    x = 0;
+    cmd = 0;
+    var item = chunk;
+    chunk = null;
+    emit(item);
+    return $command;
   }
 
 };
