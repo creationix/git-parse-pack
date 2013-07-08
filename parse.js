@@ -108,8 +108,15 @@ module.exports = function (emit, emitInfo) {
 
   // Big-endian modified base 128 number encoded ref offset
   function $ofsDelta(byte) {
+    ref = byte & 0x7f;
+    if (byte & 0x80) return $ofsDelta2;
+    emitObject();
+    return $body;
+  }
+
+  function $ofsDelta2(byte) {
     ref = ((ref + 1) << 7) | (byte & 0x7f);
-    if (byte & 0x80) return $ofsDelta;
+    if (byte & 0x80) return $ofsDelta2;
     emitObject();
     return $body;
   }
