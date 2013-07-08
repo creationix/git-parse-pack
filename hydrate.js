@@ -100,10 +100,10 @@ module.exports = function (stream, find) {
     function onPatch(err, item) {
       if (err) throw err;
       if (item === undefined) {
-        console.error("TODO: apply delta and emit new stream");
+        // TODO: apply delta and emit new stream
         return;
       }
-      console.log("onPatch", item);
+      // console.log("onPatch", item);
       commands.read(onPatch);
     }
   }
