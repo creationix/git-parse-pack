@@ -1,7 +1,7 @@
 var sha1 = require('sha1-digest');
 var subStream = require('sub-stream');
 var pushToPull = require('push-to-pull');
-var parseDelta = pushToPull(require('./parse-delta.js'));
+var applyDelta = require('./apply-delta.js');
 var bops = require('bops');
 var types = {
   "1": "commit",
@@ -67,7 +67,12 @@ module.exports = function (stream, find) {
     else if (item && item.ref) {
       // Convert offset refs into normal hash based refs
       if (typeof item.ref === "number") {
-        item.ref = hashes[item.offset - item.ref];
+        var hash = hashes[item.offset - 1 - item.ref];
+        if (!hash) {
+          console.log("ref", {offset:item.offset, ref:item.ref, target:item.offset - item.ref}, Object.keys(hashes));
+          throw new Error("Cann't find back-reference");
+        }
+        item.ref = hash;
       }
       pending++;
       find(item, onFind);
@@ -90,22 +95,10 @@ module.exports = function (stream, find) {
     }
     else {
       pending--;
-      // console.log({patch:patch,base:base});
-      var commands = parseDelta(patch.body);
-      // console.log({commands:commands});
-      commands.read(onPatch);
-      // TODO: tap this object's output as well when outputting.
+      var item = applyDelta(patch, base);
+      dataQueue.push([null, item]);
     }
     check();
-    function onPatch(err, item) {
-      if (err) throw err;
-      if (item === undefined) {
-        // TODO: apply delta and emit new stream
-        return;
-      }
-      // console.log("onPatch", item);
-      commands.read(onPatch);
-    }
   }
 
   // Tap an object's substream calculating the sha1sum along the way

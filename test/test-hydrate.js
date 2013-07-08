@@ -26,9 +26,10 @@ consume(stream, function (object) {
     if (err) throw err;
     objects[copy.hash] = copy;
     flush(copy);
-    console.log(object.hash, object.type);
+    console.log(object.hash, object.type, object.length);
   });
 })(function (err) {
+  console.log(pending);
   if (err) throw err;
   console.log("END");
 });
@@ -55,7 +56,6 @@ function find(item, callback) {
 // Flush any pending finds
 function flush(cached) {
   var actions = pending[cached.hash];
-  console.log("ACTIONS", actions, cached.hash, Object.keys(pending));
   if (!actions) return;
   delete pending[cached.hash];
   actions.forEach(function (action) {
