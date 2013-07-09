@@ -1,72 +1,52 @@
 var pushToPull = require('push-to-pull');
 var parseDelta = pushToPull(require('./parse-delta.js'));
+var seekable = require('./seekable.js');
 var bops = require('bops');
 
-
-function seekable(stream) {
-  var position = 0;
-  var buffers = [];
-  // Read to position in a stream and read some bytes
-  return seek;
-  
-  function seek(offset, bytes, callback) {
-    throw new Error("TODO: Implement seek")
-  }
-}
-
+// Input is two streams, output (in callback) is new stream and expected length
 module.exports = function (patch, base) {
-  console.log("applyDelta", {patch: patch, base: base});
-  var instructions = parseDelta(patch.body);
-  var seek = seekable(base.body);
-  var info = null;
+  var instructions = parseDelta(patch);
+  var getBytes = seekable(base);
   var emit = null;
-  var output = {
-    type: base.type,
-    length: null,
-    body: { read: read, abort: abort }
+
+  // Return a continuable so we can wait for the target length
+  return function (callback) {
+    instructions.read(function (err, info) {
+      callback(null, info && {
+        read: read, abort: abort,
+        baseLen: info.baseLen, targetLen: info.targetLen
+      });
+    });
   };
 
-  return output;
-  
   function read(callback) {
     if (emit) return callback(new Error("Only one read at a time"));
     emit = callback;
-    instructions.read(info ? onInstruction : onInfo);
+    instructions.read(onInstruction);
   }
-  
-  function onInfo(err, item) {
-    if (err) {
-      var callback = emit;
-      emit = null;
-      return callback(err);
-    }
-    info = item;
-    output.length = info.targetLen;
-    return instructions.read(onInstruction);
-  }
-  
+
   function onInstruction(err, item) {
-    if (err || bops.is(item)) {
+    if (err || bops.is(item) || item === undefined) {
       var callback = emit;
       emit = null;
       return callback(err, item);
     }
-    seek(item.offset, item.size, onSeek);
+    getBytes(item.offset, item.size, onSeek);
   }
-  
+
   function onSeek(err, item) {
     var callback = emit;
     emit = null;
     callback(err, item);
   }
-  
+
   function abort(callback) {
     var left = 2;
     var done = false;
 
-    patch.body.abort(onAbort);
-    base.body.abort(onAbort);
-    
+    patch.abort(onAbort);
+    base.abort(onAbort);
+
     function onAbort(err) {
       if (done || (--left && !err)) return;
       done = true;
@@ -74,3 +54,4 @@ module.exports = function (patch, base) {
     }
   }
 };
+
