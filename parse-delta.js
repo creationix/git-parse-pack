@@ -12,7 +12,12 @@ module.exports = function (emit) {
 
   return function (chunk) {
     
-    if (chunk === undefined) return emit();
+    if (chunk === undefined) {
+      if (state === $copyOffset || state === $copySize) {
+        state = state();
+      }
+      return emit();
+    }
 
     for (var i = 0, l = chunk.length; i < l; i++) {
       // console.log(state.name, chunk[i].toString(16));
@@ -32,7 +37,8 @@ module.exports = function (emit) {
   function $targetLen(byte) {
     targetLen |= (byte & 0x7f) << (x++ * 7);
     if (byte & 0x80) return $targetLen;
-    emit({baseLen: baseLen, targetLen: targetLen});
+    var item = {baseLen: baseLen, targetLen: targetLen};
+    emit(item);
     x = 0;
     return $command;
   }
@@ -44,6 +50,7 @@ module.exports = function (emit) {
       chunk = bops.create(byte);
       return $insert;
     }
+    if (byte === undefined) return;
     throw new Error("Unexpected delta opcode 0");
   }
 
