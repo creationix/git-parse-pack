@@ -10,12 +10,13 @@ function seekable(stream) {
     seek(offset + bytes, onSeek);
 
     function onSeek(err) {
+      var output, next, diff;
       if (err) return callback(err);
 
       // Skip bytes till we're where we want to be.
       while (position < offset) {
-        var diff = offset - position;
-        var next = buffers[0];
+        diff = offset - position;
+        next = buffers[0];
 
         // If entire chunks are to be ignored, throw them away.
         if (next.length <= diff) {
@@ -30,7 +31,6 @@ function seekable(stream) {
       }
 
 
-      var output;
       // If the next buffer is the exact size we want, send it up!
       if (buffers[0].length === bytes) {
         output = buffers.shift();
@@ -47,17 +47,26 @@ function seekable(stream) {
       }
 
       // Otherwise, piece smaller pieces together till we've got enough.
-      throw new Error("TODO: Implement chopped bits");
-      // var output = bops.create(bytes);
-      // var i = 0;
-      // while (i < bytes) {
-      //   var diff = bytes - i;
-      //   var next = buffers[0];
-      //   if (next.length < diff) {
-      //     bops.copy()
-      //   }
-      // }
-      // console.log(buffers);
+      console.log(bytes, buffers.map(function (buffer) {
+        return buffer.length;
+      }));
+      output = bops.create(bytes);
+      var i = 0;
+      while (i < bytes) {
+        diff = bytes - i;
+        next = buffers[0];
+        if (next.length <= diff) {
+          buffers.shift();
+          bops.copy(next, output, i);
+          i += next.length;
+        }
+        else {
+          bops.copy(bops.subarray(next, 0, diff), output, i);
+          buffers[0] = bops.subarray(next, diff);
+          i += diff;
+        }
+      }
+      return callback(null, output);
     }
   };
 

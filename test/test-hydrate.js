@@ -3,8 +3,6 @@ var parse = pushToPull(require('../parse.js'));
 var hydrate = require('../hydrate.js');
 var consume = require('./helpers.js').consume;
 var readStream = require('./helpers.js').readStream;
-var bops = require('bops');
-
 
 // Stream is raw pack file as seen on disk
 var stream = readStream(process.argv[2] || __dirname + "/sample.pack");
@@ -36,7 +34,7 @@ consume(stream, function (object) {
 
 function find(item, callback) {
   var hash = item.ref;
-  console.log("Looking for", hash);
+  console.log(hash, "SEARCHING...");
 
   // If the target is here, send it out.
   var cached = objects[hash];

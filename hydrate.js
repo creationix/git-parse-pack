@@ -95,7 +95,7 @@ module.exports = function (stream, find) {
       check();
     }
     if (err) return callback(err);
-    console.log("Found", patch.ref);
+    console.log(patch.ref, "FOUND");
     pending--;
     applyDelta(patch.body, base.body)(function (err, output) {
 
@@ -107,11 +107,9 @@ module.exports = function (stream, find) {
         offset: patch.offset,
         type: base.type,
         length: output.targetLen,
-        hash: null,
         body: { read: output.read, abort: output.abort },
         merged: true
       });
-      console.log({patch:patch,base:base,item:item});
       callback(null, item);
     });
   }
