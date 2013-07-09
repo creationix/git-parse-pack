@@ -26,7 +26,7 @@ consume(stream, function (object) {
     if (err) throw err;
     objects[copy.hash] = copy;
     flush(copy);
-    console.log(object.hash, object.type, object.length);
+    console.log(object.hash, object.type, object.length, object.merged ? "merged": "");
   });
 })(function (err) {
   console.log(pending);

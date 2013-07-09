@@ -44,7 +44,7 @@ function readStream(path, options) {
     if (!fd) {
       return start();
     }
-    var length = 8192;
+    var length = 17//8192;
     if (typeof position === 'number' && typeof options.end === 'number') {
       length = Math.min(length, options.end - position);
       if (!length) {

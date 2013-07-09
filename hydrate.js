@@ -90,21 +90,37 @@ module.exports = function (stream, find) {
   // Item here may or may not be the same object as was passed into find
   // since it may have been put in offline storage temporarily.
   function onFind(err, patch, base) {
-    if (err) {
-      dataQueue.push([err]);
+    function callback() {
+      dataQueue.push(arguments);
+      check();
     }
-    else {
-      pending--;
-      var item = applyDelta(patch, base);
-      dataQueue.push([null, item]);
-    }
-    check();
+    if (err) return callback(err);
+    console.log("Found", patch.ref);
+    pending--;
+    applyDelta(patch.body, base.body)(function (err, output) {
+
+      if (output === undefined) return callback(err);
+      if (output.baseLen !== base.length) {
+        return callback(new Error("Base length mismatch " + output.baseLen + " != " + base.length));
+      }
+      var item = tap({
+        offset: patch.offset,
+        type: base.type,
+        length: output.targetLen,
+        hash: null,
+        body: { read: output.read, abort: output.abort },
+        merged: true
+      });
+      console.log({patch:patch,base:base,item:item});
+      callback(null, item);
+    });
   }
 
   // Tap an object's substream calculating the sha1sum along the way
   // When done, store hash on item and save the offset -> hash mapping.
   function tap(item) {
     var stream = item.body;
+    var bytes = 0;
 
     var sha1sum = sha1();
     sha1sum.update(item.type + " " + item.length + "\0");
@@ -112,13 +128,24 @@ module.exports = function (stream, find) {
     item.body = { read: tappedRead, abort: stream.abort };
     item.hash = null;
 
+    return item;
+
     function tappedRead(callback) {
       stream.read(function (err, chunk) {
         if (err) return callback(err);
         if (chunk === undefined) {
-          hashes[item.offset] = item.hash = sha1sum.digest();
+          var hash = sha1sum.digest();
+          if (item.hash && item.hash !== hash) {
+            return callback(new Error("Sha1sum mismatch: " + item.hash + " != " + hash));
+          }
+          hashes[item.offset] = item.hash = hash;
+          if (bytes !== item.length) {
+            return callback(new Error("Length mismatch:  Expected " + item.length + ", but was " + bytes));
+          }
           return callback();
         }
+        bytes += chunk.length;
+        // console.log(chunk.toString());
         sha1sum.update(chunk);
         callback(null, chunk);
       });
