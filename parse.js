@@ -2,6 +2,15 @@ var sha1 = require('sha1-digest');
 var inflate = require('./todo/inflate');
 var subarray = require('bops/subarray.js');
 
+var types = {
+  "1": "commit",
+  "2": "tree",
+  "3": "blob",
+  "4": "tag",
+  "6": "ofs-delta",
+  "7": "ref-delta"
+};
+
 module.exports = function (emit, emitInfo) {
 
   var state = $pack;
@@ -138,7 +147,13 @@ module.exports = function (emit, emitInfo) {
 
   // Common helper for emitting all three object shapes
   function emitObject() {
-    var item = {offset: start, type: type, length: length, ref: ref};
+    var item = {
+      type: types[type],
+      size: length,
+      body: null,
+      offset: start
+    };
+    if (ref) item.ref = ref;
     start = 0;
     offset = 0;
     type = 0;
