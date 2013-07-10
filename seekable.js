@@ -31,6 +31,7 @@ function seekable(stream) {
       }
 
 
+      // Otherwise, piece smaller pieces together till we've got enough.
       // If the next buffer is the exact size we want, send it up!
       if (buffers[0].length === bytes) {
         output = buffers.shift();
@@ -46,10 +47,6 @@ function seekable(stream) {
         return callback(null, output);
       }
 
-      // Otherwise, piece smaller pieces together till we've got enough.
-      console.log(bytes, buffers.map(function (buffer) {
-        return buffer.length;
-      }));
       output = bops.create(bytes);
       var i = 0;
       while (i < bytes) {
@@ -66,17 +63,18 @@ function seekable(stream) {
           i += diff;
         }
       }
+      position += bytes;
       return callback(null, output);
     }
   };
 
-  function seek(position, callback) {
-    if (position < consumed) return callback();
+  function seek(target, callback) {
+    if (target < consumed) return callback();
     stream.read(function (err, item) {
       if (item === undefined) return callback(err);
       buffers.push(item);
       consumed += item.length;
-      return seek(position, callback);
+      return seek(target, callback);
     });
   }
 }
