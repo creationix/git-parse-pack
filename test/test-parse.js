@@ -17,7 +17,7 @@ var emit = parse(function (item) {
   else if (!bops.is(item)) {
     count++;
   }
-}, true);
+});
 
 var sample = require('fs').readFileSync(process.argv[2] || __dirname + "/sample.pack");
 emit(sample);

@@ -71,9 +71,7 @@ module.exports = function (emit, emitInfo) {
     num = (num << 8) | byte;
     if (++offset < 4) return $num;
     offset = 0;
-    if (emitInfo) {
-      emit({version: version, num: num});
-    }
+    emit({version: version, num: num});
     return $header;
   }
 
