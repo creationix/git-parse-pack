@@ -67,11 +67,8 @@ module.exports = function (stream, find) {
     else if (item && item.ref) {
       // Convert offset refs into normal hash based refs
       if (typeof item.ref === "number") {
-        var hash = hashes[item.offset - 1 - item.ref];
-        if (!hash) {
-          console.log("ref", {offset:item.offset, ref:item.ref, target:item.offset - item.ref}, Object.keys(hashes));
-          throw new Error("Cann't find back-reference");
-        }
+        var hash = hashes[item.offset - item.ref];
+        if (!hash) throw new Error("Cann't find back-reference");
         item.ref = hash;
       }
       pending++;

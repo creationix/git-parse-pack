@@ -16,6 +16,7 @@ module.exports = function (emit, emitInfo) {
   var length = 0;
   var ref = null;
   var checksum = "";
+  var start = 0;
 
   return function (chunk) {
     if (chunk === undefined) {
@@ -71,6 +72,7 @@ module.exports = function (emit, emitInfo) {
   // CTTTSSSS
   // C is continue bit, TTT is type, S+ is length
   function $header(byte) {
+    if (start === 0) start = position;
     type = byte >> 4 & 0x07;
     length = byte & 0x0f;
     if (byte & 0x80) {
@@ -136,7 +138,8 @@ module.exports = function (emit, emitInfo) {
 
   // Common helper for emitting all three object shapes
   function emitObject() {
-    var item = {offset: position, type: type, length: length, ref: ref};
+    var item = {offset: start, type: type, length: length, ref: ref};
+    start = 0;
     offset = 0;
     type = 0;
     length = 0;
