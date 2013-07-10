@@ -4,20 +4,21 @@ var seekable = require('seekable');
 var bops = require('bops');
 
 // Input is two streams, output (in callback) is new stream and expected length
-module.exports = function (patch, getBase) {
+// applyDelta(deltaBody, targetBody) -> continuable<outputBody>
+module.exports = applyDelta;
+function applyDelta(patch, getBase, callback) {
+  if (!callback) return applyDelta.call(this, patch, getBase);
+
   var instructions = parseDelta(patch);
   var seek = seekable(getBase);
   var emit = null;
 
-  // Return a continuable so we can wait for the target length
-  return function (callback) {
-    instructions.read(function (err, info) {
-      callback(null, info && {
-        read: read, abort: abort,
-        baseLen: info.baseLen, targetLen: info.targetLen
-      });
+  instructions.read(function (err, info) {
+    callback(err, info && {
+      read: read, abort: abort,
+      baseLen: info.baseLen, targetLen: info.targetLen
     });
-  };
+  });
 
   function read(callback) {
     if (emit) return callback(new Error("Only one read at a time"));
