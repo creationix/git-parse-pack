@@ -16,24 +16,26 @@ module.exports = function () {
 
   return {
     // load(hash) -> continuable<obj>
-    load: c1(load),
+    load: load,
     // save(obj) -> continuable<hash>
-    save: c1(save),
+    save: save,
     // remove(hash) -> continuable
-    remove: c1(remove)
+    remove: remove
   };
   
   function load(hash, callback) {
+    if (!callback) return load.bind(this, hash);
     var obj = data[hash];
     if (!obj) return callback();
     callback(null, {
       type: obj.type,
       size: obj.size,
-      body: binarySource(obj.body)
+      body: binarySource(obj.body, obj.size)
     });
   }
   
   function save(obj, callback) {
+    if (!callback) return save.bind(this, obj);
     var items = [];
     var sha1sum = sha1();
     sha1sum.update(obj.type + " " + obj.size + "\0");
@@ -57,17 +59,8 @@ module.exports = function () {
   }
   
   function remove(hash, callback) {
+    if (!callback) return remove.bind(this, hash);
     delete data[hash];
     callback();
   }
 };
-
-// Make a callback based function also work as a continuable based function
-function c1(fn) {
-  return function (arg, callback) {
-    if (callback) return fn(arg, callback);
-    return function (callback) {
-      return fn(arg, callback);
-    };
-  };
-}
