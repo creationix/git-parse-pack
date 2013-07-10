@@ -22,9 +22,13 @@
   },
   "dependencies": {
     "inflate": "~0.0.7",
+    "seekable": "~0.0.2",
     "sha1-digest": "~0.0.1",
     "push-to-pull": "~0.1.0",
     "sub-stream": "~0.0.4",
     "bops": "0.0.6"
+  },
+  "devDependencies": {
+    "tape": "~1.0.4"
   }
 }

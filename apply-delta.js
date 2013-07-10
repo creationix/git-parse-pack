@@ -1,12 +1,12 @@
 var pushToPull = require('push-to-pull');
 var parseDelta = pushToPull(require('./parse-delta.js'));
-var seekable = require('./seekable.js');
+var seekable = require('seekable');
 var bops = require('bops');
 
 // Input is two streams, output (in callback) is new stream and expected length
 module.exports = function (patch, base) {
   var instructions = parseDelta(patch);
-  var getBytes = seekable(base);
+  var seek = seekable(base);
   var emit = null;
 
   // Return a continuable so we can wait for the target length
@@ -31,7 +31,7 @@ module.exports = function (patch, base) {
       emit = null;
       return callback(err, item);
     }
-    getBytes(item.offset, item.size, onSeek);
+    seek(item.offset, item.size)(onSeek);
   }
 
   function onSeek(err, item) {
