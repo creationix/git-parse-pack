@@ -1,8 +1,12 @@
 var pushToPull = require('push-to-pull');
 var parse = pushToPull(require('../parse.js'));
 var hydrate = require('../hydrate.js');
-var consume = require('./helpers.js').consume;
-var readStream = require('./helpers.js').readStream;
+var readStream = require('./fs.js').readStream;
+var binarySource = require('simple-stream-helpers/binary-source.js');
+var each = require('simple-stream-helpers/each.js');
+var consume = require('simple-stream-helpers/consume.js');
+var slow = require('simple-stream-helpers/slow.js');
+var bops = require('bops');
 
 // Stream is raw pack file as seen on disk
 var stream = readStream(process.argv[2] || __dirname + "/sample.pack");
@@ -19,7 +23,7 @@ var objects = {};
 // Pending finds.  Key is hash of target, value is array of patches with callbacks.
 var pending = {};
 
-consume(stream, function (object) {
+each(stream, function (object) {
   store(object, function (err, copy) {
     if (err) throw err;
     objects[copy.hash] = copy;
@@ -68,13 +72,10 @@ function store(object, callback) {
     if (key === "body") continue;
     copy[key] = object[key];
   }
-  var body = [];
-  consume(object.body, function (item) {
-    body.push(item);
-  })(function (err) {
+  consume(object.body)(function (err, items) {
     if (err) return callback(err);
-    copy.body = body;
     copy.hash = object.hash;
+    copy.body = bops.join(items);
     callback(null, copy);
   });
 }
@@ -86,17 +87,7 @@ function load(copy) {
     if (key === "body") continue;
     object[key] = copy[key];
   }
-
-  var body = copy.body;
-  object.body = {
-    read: function read(callback) {
-      callback(null, body.shift());
-    },
-    abort: function abort(callback) {
-      body.length = 0;
-      callback();
-    }
-  };
+  object.body = binarySource(copy.body, 0x100);
 
   return object;
 }
