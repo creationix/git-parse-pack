@@ -4,9 +4,9 @@ var seekable = require('seekable');
 var bops = require('bops');
 
 // Input is two streams, output (in callback) is new stream and expected length
-module.exports = function (patch, base) {
+module.exports = function (patch, getBase) {
   var instructions = parseDelta(patch);
-  var seek = seekable(base);
+  var seek = seekable(getBase);
   var emit = null;
 
   // Return a continuable so we can wait for the target length
@@ -26,6 +26,7 @@ module.exports = function (patch, base) {
   }
 
   function onInstruction(err, item) {
+    console.log("instruction", item);
     if (err || bops.is(item) || item === undefined) {
       var callback = emit;
       emit = null;
@@ -45,7 +46,7 @@ module.exports = function (patch, base) {
     var done = false;
 
     patch.abort(onAbort);
-    base.abort(onAbort);
+    // TODO: should be abort the base streams?
 
     function onAbort(err) {
       if (done || (--left && !err)) return;
