@@ -14,11 +14,13 @@ module.exports = function () {
   var push = inflate(onEmit, onUnused);
   var more = true;
   var chunks = [];
+  var b = bops.create(1);
   
   return { write: write, recycle: recycle, flush: flush };
 
   function write(byte) {
-    push(null, [byte]);
+    b[0] = byte;
+    push(null, b);
     return more;
   }
   
