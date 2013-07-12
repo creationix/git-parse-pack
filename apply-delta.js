@@ -27,7 +27,7 @@ function applyDelta(patch, getBase, callback) {
   }
 
   function onInstruction(err, item) {
-    console.log("instruction", item);
+    // console.log("instruction", item);
     if (err || bops.is(item) || item === undefined) {
       var callback = emit;
       emit = null;
@@ -55,5 +55,5 @@ function applyDelta(patch, getBase, callback) {
       return callback(err);
     }
   }
-};
+}
 
