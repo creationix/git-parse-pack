@@ -1,5 +1,6 @@
 var subStream = require('sub-stream');
 var each = require('simple-stream-helpers/each.js');
+var consume = require('simple-stream-helpers/consume.js');
 var bops = require('bops');
 var arraySource = require('simple-stream-helpers/array-source.js');
 var pushToPull = require('push-to-pull');
@@ -40,7 +41,14 @@ function hydrate(stream, db, callback) {
       return !bops.is(item);
     }, "body");
 
-    each(stream, onObject)(onReceived);
+    each({ read: rawRead, abort: stream.abort })(onReceived);
+
+    function rawRead(callback) {
+      stream.read(function (err, obj) {
+        if (obj === undefined) return callback(err);
+        onObject(obj, callback);
+      });
+    }
   }
 
   function progress() {
@@ -48,7 +56,12 @@ function hydrate(stream, db, callback) {
     return "Receiving objects:  " + percent + "% (" + count + "/" + num + ")";
   }
 
-  function onObject(obj) {
+  function deltaProgress() {
+    var percent = Math.round(count / deltas * 100);
+    return "Applying deltas:  " + percent + "% (" + count + "/" + deltas + ")";
+  }
+
+  function onObject(obj, callback) {
     process.stdout.write(progress() + "\r");
     db.save(obj, function (err, hash) {
       if (err) return callback(err);
@@ -65,6 +78,7 @@ function hydrate(stream, db, callback) {
         hashes[hash] = true;
       }
       count++;
+      callback(null, obj);
     });
   }
 
@@ -82,31 +96,29 @@ function hydrate(stream, db, callback) {
     hashes = null;
     count = 0;
 
-    console.log({
-      dependents: dependents,
-      jobQueue: jobQueue
-    });
-
     nextJob();
   }
 
   function nextJob(err) {
     if (err) return callback(err);
+    process.stdout.write(deltaProgress() + "\r");
     var job = jobQueue.shift();
     if (!job) return onApplied();
+    count++;
     var delta, target;
     var first = true;
     db.load(job.delta, onDelta);
 
     function onDelta(err, obj) {
-      console.log("onDelta", arguments);
+      // console.log("onDelta", arguments);
       if (err) return callback(err);
+      if (!obj) return callback(new Error("Can't find base object " + job.delta));
       delta = obj;
       db.load(job.target, onTarget);
     }
 
     function onTarget(err, obj) {
-      console.log("onTarget", arguments);
+      // console.log("onTarget", arguments);
       if (err) return callback(err);
       target = obj;
       applyDelta(delta.body, getTarget, onOutput);
@@ -117,16 +129,16 @@ function hydrate(stream, db, callback) {
         first = false;
         return callback(null, target.body);
       }
-      console.log("getTarget");
+      // console.log("getTarget");
       db.load(job.target, function (err, obj) {
-        console.log("onTargetAgain", arguments);
+        // console.log("onTargetAgain", arguments);
         if (err) return callback(err);
         callback(null, obj.body);
       });
     }
 
     function onOutput(err, stream) {
-      console.log("onOutput", arguments);
+      // console.log("onOutput", arguments);
       if (err) return callback(err);
       db.save({
         type: target.type,
@@ -136,7 +148,7 @@ function hydrate(stream, db, callback) {
     }
 
     function onSave(err, hash) {
-      console.log("onSave", arguments);
+      // console.log("onSave", arguments);
       if (err) return callback(err);
 
       // If others dependended on this, queue them up!
@@ -152,10 +164,15 @@ function hydrate(stream, db, callback) {
   }
 
   function onApplied() {
-    console.log({
-      dependents: dependents,
-      jobQueue: jobQueue
+    process.stdout.write(deltaProgress() + "\n");
+    if (jobQueue.length || Object.keys(dependents).length) {
+      return callback(new Error("Failed to apply all deltas"));
+    }
+    callback(null, {
+      version: version,
+      objects: num,
+      deltas: deltas
     });
-    console.log("DONE?");
   }
+
 }
