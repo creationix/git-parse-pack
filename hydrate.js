@@ -1,9 +1,6 @@
 var subStream = require('sub-stream');
 var each = require('simple-stream-helpers/each.js');
-var consume = require('simple-stream-helpers/consume.js');
 var bops = require('bops');
-var arraySource = require('simple-stream-helpers/array-source.js');
-var pushToPull = require('push-to-pull');
 var applyDelta = require('./apply-delta.js');
 
 // Accepts a stream of raw packfile parse output.
@@ -62,7 +59,7 @@ function hydrate(stream, db, callback) {
   }
 
   function onObject(obj, callback) {
-    process.stdout.write(progress() + "\r");
+    // process.stdout.write(progress() + "\r");
     db.save(obj, function (err, hash) {
       if (err) return callback(err);
       offsets[obj.offset] = hash;
@@ -84,7 +81,7 @@ function hydrate(stream, db, callback) {
 
   function onReceived(err) {
     if (err) return callback(err);
-    process.stdout.write(progress() + "\n");
+    // process.stdout.write(progress() + "\n");
     Object.keys(dependents).forEach(function (hash) {
       if (!hashes[hash]) return;
       dependents[hash].forEach(function (delta) {
@@ -101,7 +98,7 @@ function hydrate(stream, db, callback) {
 
   function nextJob(err) {
     if (err) return callback(err);
-    process.stdout.write(deltaProgress() + "\r");
+    // process.stdout.write(deltaProgress() + "\r");
     var job = jobQueue.shift();
     if (!job) return onApplied();
     count++;
@@ -164,7 +161,7 @@ function hydrate(stream, db, callback) {
   }
 
   function onApplied() {
-    process.stdout.write(deltaProgress() + "\n");
+    // process.stdout.write(deltaProgress() + "\n");
     if (jobQueue.length || Object.keys(dependents).length) {
       return callback(new Error("Failed to apply all deltas"));
     }
