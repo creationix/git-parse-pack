@@ -34,15 +34,15 @@ function inflate(emit, $done) {
       throw new Error("Invalid fcheck in zlib header");
     }
     // bit 5 (preset dictionary)
-    return (byte >> 5 & 0x1) ? $dict : want(1, $bfinal);
+    return (byte >> 5 & 0x1) ? $dict : want(1, _bfinal);
   }
 
   function $dict(byte) {
     throw new Error("TODO: Implement parsing preset dictionary");
   }
 
-  function want(bits, state) {
-    bitsLeft = bits;
+  function want(num, state) {
+    bitsLeft = num;
     nextState = state;
     digit = 0;
     value = 0;
@@ -51,12 +51,8 @@ function inflate(emit, $done) {
 
   function $consume(byte) {
     oldByte = byte;
-    // console.log("BYTE", byte.toString(2));
     while (bitsLeft--) {
-      // console.log({next:nextState.name,bitsLeft:bitsLeft,bit:bit,digit:digit});
-      var b = (byte >> bit++) & 1;
-      value |= b << digit++;
-      // console.log(b, value.toString(2));
+      value |= ((byte >> bit++) & 1) << digit++;
       if (bit === 8) {
         bit = 0;
         if (bitsLeft) return $consume;
@@ -66,12 +62,12 @@ function inflate(emit, $done) {
     return nextState(value);
   }
 
-  function $bfinal(bits) {
+  function _bfinal(bits) {
     final = bits;
-    return want(2, $btype);
+    return want(2, _btype);
   }
 
-  function $btype(bits) {
+  function _btype(bits) {
     type = bits;
     console.log({
       final: final,
