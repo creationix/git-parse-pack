@@ -1,9 +1,16 @@
 module.exports = inflate;
 
-function inflate($done, emit) {
+function inflate(emit, $done) {
 
-  var cmf;
-  var fdict;
+  var cmf = 0;
+  var final = 0;
+  var type = 0;
+  var bit = 0;          // Current bit offset in byte
+  var digit = 0;        // Current bit in value
+  var value = 0;        // Current bit value
+  var bitsLeft = 0;
+  var oldByte;
+  var nextState = null;
 
   return $cmf;  // Start out parsing the zlib deflate headers
 
@@ -27,15 +34,49 @@ function inflate($done, emit) {
       throw new Error("Invalid fcheck in zlib header");
     }
     // bit 5 (preset dictionary)
-    return (flg >> 5 & 0x1) ? $dict : $head;
+    return (byte >> 5 & 0x1) ? $dict : want(1, $bfinal);
   }
 
   function $dict(byte) {
     throw new Error("TODO: Implement parsing preset dictionary");
   }
 
-  function $head(byte) {
-    throw new Error("TODO: Implement deflate header parsing");
+  function want(bits, state) {
+    bitsLeft = bits;
+    nextState = state;
+    digit = 0;
+    value = 0;
+    return bit ? $consume(oldByte) : $consume;
+  }
+
+  function $consume(byte) {
+    oldByte = byte;
+    // console.log("BYTE", byte.toString(2));
+    while (bitsLeft--) {
+      // console.log({next:nextState.name,bitsLeft:bitsLeft,bit:bit,digit:digit});
+      var b = (byte >> bit++) & 1;
+      value |= b << digit++;
+      // console.log(b, value.toString(2));
+      if (bit === 8) {
+        bit = 0;
+        if (bitsLeft) return $consume;
+      }
+    }
+    console.log(nextState.name, value.toString(2));
+    return nextState(value);
+  }
+
+  function $bfinal(bits) {
+    final = bits;
+    return want(2, $btype);
+  }
+
+  function $btype(bits) {
+    type = bits;
+    console.log({
+      final: final,
+      type: type
+    });
   }
 
 }
